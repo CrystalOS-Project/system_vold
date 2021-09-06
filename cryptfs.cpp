@@ -1756,7 +1756,7 @@ static int wait_and_unmount(const char* mountpoint, bool kill) {
 
     // Subdirectory mount will cause a failure of umount.
     ensure_subdirectory_unmounted(mountpoint);
-#define WAIT_UNMOUNT_COUNT 200
+#define WAIT_UNMOUNT_COUNT 20
 
     /*  Now umount the tmpfs filesystem */
     for (i = 0; i < WAIT_UNMOUNT_COUNT; i++) {
@@ -1773,18 +1773,18 @@ static int wait_and_unmount(const char* mountpoint, bool kill) {
 
         err = errno;
 
-        /* If allowed, be increasingly aggressive before the last 2 seconds */
+        /* If allowed, be increasingly aggressive before the last two retries */
         if (kill) {
-            if (i == (WAIT_UNMOUNT_COUNT - 30)) {
+            if (i == (WAIT_UNMOUNT_COUNT - 3)) {
                 SLOGW("sending SIGHUP to processes with open files\n");
                 android::vold::KillProcessesWithOpenFiles(mountpoint, SIGTERM);
-            } else if (i == (WAIT_UNMOUNT_COUNT - 20)) {
+            } else if (i == (WAIT_UNMOUNT_COUNT - 2)) {
                 SLOGW("sending SIGKILL to processes with open files\n");
                 android::vold::KillProcessesWithOpenFiles(mountpoint, SIGKILL);
             }
         }
 
-        usleep(100000);
+        sleep(1);
     }
 
     if (i < WAIT_UNMOUNT_COUNT) {
@@ -2892,7 +2892,6 @@ int cryptfs_enable_internal(int crypt_type, const char* passwd, int no_ui) {
          * restart the graphics services.
          */
         sleep(2);
-
         /* startup service classes main and late_start */
         property_set("vold.decrypt", "trigger_restart_min_framework");
         SLOGD("Just triggered restart_min_framework\n");
